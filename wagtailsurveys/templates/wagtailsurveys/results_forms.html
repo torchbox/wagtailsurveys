@@ -1,0 +1,8 @@
+{% load i18n %}
+{% if survey_pages %}
+    {% include "wagtailsurveys/list_forms.html" %}
+
+    {% include "wagtailadmin/shared/pagination_nav.html" with items=survey_pages linkurl="wagtailsurveys:index" %}
+{% else %}
+    <p>{% trans "No survey pages have been created." %}</p>
+{% endif %}

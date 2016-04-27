@@ -1,0 +1,14 @@
+{% extends "wagtailadmin/base.html" %}
+{% load i18n %}
+{% block titletag %}{% trans "Forms" %}{% endblock %}
+{% block content %}
+    {% trans "Surveys" as surveys_str %}
+    {% trans "Pages" as select_survey_str %}
+    {% include "wagtailadmin/shared/header.html" with title=surveys_str subtitle=select_survey_str icon="group" %}
+
+    <div class="nice-padding">
+        <div id="form-results" class="forms">
+            {% include "wagtailsurveys/results_forms.html" %}
+        </div>
+    </div>
+{% endblock %}

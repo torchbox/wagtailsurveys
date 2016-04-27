@@ -1,0 +1,31 @@
+{% extends "wagtailadmin/base.html" %}
+{% load i18n %}
+{% block titletag %}{% blocktrans with survey_page_title=survey_page.title|capfirst %}Submissions of {{ survey_page_title }}{% endblocktrans %}{% endblock %}
+{% block content %}
+    <header class="nice-padding">
+        <form action="" method="get">
+            <div class="row">
+                <div class="left">
+                    <div class="col">
+                        <h1 class="icon icon-group">
+                        {% blocktrans with survey_title=survey_page.title|capfirst %}Survey data <span>{{ survey_title }}</span>{% endblocktrans %}
+                        </h1>
+                    </div>
+                </div>
+                <div class="right">
+                   <button name="action" value="CSV" class="button bicolor icon icon-download">{% trans 'Download CSV' %}</button>
+                </div>
+            </div>
+        </form>
+    </header>
+    <div class="nice-padding">
+        {% if submissions %}
+            {% include "wagtailsurveys/list_submissions.html" %}
+
+            {% include "wagtailadmin/shared/pagination_nav.html" with items=submissions is_searching=False linkurl='-' %}
+            {# Here we pass an invalid non-empty URL name as linkurl to generate pagination links with the URL path omitted #}
+        {% else %}
+            <p class="no-results-message">{% blocktrans with title=survey_page.title %}There have been no submissions of the '{{ title }}'.{% endblocktrans %}</p>
+        {% endif %}
+    </div>
+{% endblock %}

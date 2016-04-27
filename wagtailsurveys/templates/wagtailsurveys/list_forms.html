@@ -1,0 +1,23 @@
+{% load i18n %}
+<table class="listing">
+    <col width="50%"/>
+    <col width="50%"/>
+    <thead>
+        <tr>
+            <th class="title">{% trans "Title" %}</th>
+            <th class="type">{% trans "Origin" %}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for sp in survey_pages %}
+            <tr>
+                <td class="title">
+                    <h2><a href="{% url 'wagtailsurveys:list_submissions' sp.id %}">{{ sp|capfirst }}</a></h2>
+                </td>
+                <td class="type">
+                    <small><a href="{% url 'wagtailadmin_pages:edit' sp.id %}" class="nolink">{{ sp.content_type.name |capfirst }} ({{ sp.content_type.app_label }}.{{ sp.content_type.model }})</a></small>
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
