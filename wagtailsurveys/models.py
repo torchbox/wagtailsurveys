@@ -172,7 +172,7 @@ class AbstractSurvey(Page):
 
     def serve(self, request, *args, **kwargs):
         if request.method == 'POST':
-            form = self.get_form(request.POST)
+            form = self.get_form(request.POST, page=self, user=request.user)
 
             if form.is_valid():
                 self.process_form_submission(form)
@@ -185,7 +185,7 @@ class AbstractSurvey(Page):
                     self.get_context(request)
                 )
         else:
-            form = self.get_form()
+            form = self.get_form(page=self, user=request.user)
 
         context = self.get_context(request)
         context['form'] = form
