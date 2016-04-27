@@ -10,7 +10,7 @@ from wagtail.utils.pagination import paginate
 from wagtail.wagtailcore.models import Page
 from wagtail.wagtailadmin import messages
 
-from wagtailsurveys.models import FormSubmission, get_surveys_for_user
+from wagtailsurveys.models import get_surveys_for_user
 
 
 def index(request):
@@ -27,8 +27,8 @@ def delete_submission(request, page_id, submission_id):
     if not get_surveys_for_user(request.user).filter(id=page_id).exists():
         raise PermissionDenied
 
-    submission = get_object_or_404(FormSubmission, id=submission_id)
-    page = get_object_or_404(Page, id=page_id)
+    page = get_object_or_404(Page, id=page_id).specific
+    submission = get_object_or_404(page.get_submission_class(), id=submission_id)
 
     if request.method == 'POST':
         submission.delete()
@@ -44,6 +44,7 @@ def delete_submission(request, page_id, submission_id):
 
 def list_submissions(request, page_id):
     survey_page = get_object_or_404(Page, id=page_id).specific
+    SubmissionClass = survey_page.get_submission_class()
 
     if not get_surveys_for_user(request.user).filter(id=page_id).exists():
         raise PermissionDenied
@@ -53,7 +54,7 @@ def list_submissions(request, page_id):
         for field in survey_page.form_fields.all()
     ]
 
-    submissions = FormSubmission.objects.filter(page=survey_page)
+    submissions = SubmissionClass.objects.filter(page=survey_page)
 
     if request.GET.get('action') == 'CSV':
         # return a CSV instead

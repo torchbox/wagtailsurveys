@@ -20,7 +20,7 @@ from wagtailsurveys.forms import FormBuilder
 
 
 @python_2_unicode_compatible
-class FormSubmission(models.Model):
+class AbstractFormSubmission(models.Model):
     """Data for a survey submission."""
 
     form_data = models.TextField()
@@ -35,7 +35,12 @@ class FormSubmission(models.Model):
         return self.form_data
 
     class Meta:
+        abstract = True
         verbose_name = _('form submission')
+
+
+class FormSubmission(AbstractFormSubmission):
+    pass
 
 
 class AbstractFormField(Orderable):
@@ -143,8 +148,8 @@ class AbstractSurvey(Page):
         abstract = True
 
     def get_form_class(self):
-        fb = self.form_builder(self.form_fields.all())
-        return fb.get_form_class()
+        form_builder = self.form_builder(self.form_fields.all())
+        return form_builder.get_form_class()
 
     def get_form_parameters(self):
         return {}
@@ -156,8 +161,11 @@ class AbstractSurvey(Page):
 
         return form_class(*args, **form_params)
 
+    def get_submission_class(self):
+        return FormSubmission
+
     def process_form_submission(self, form):
-        FormSubmission.objects.create(
+        self.get_submission_class().objects.create(
             form_data=json.dumps(form.cleaned_data, cls=DjangoJSONEncoder),
             page=self,
         )
