@@ -1,10 +1,14 @@
+from __future__ import unicode_literals
+
 import csv
 
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils.encoding import smart_str
+from django.utils.six import text_type
 from django.utils.translation import ugettext as _
+from unidecode import unidecode
 
 from wagtail.utils.pagination import paginate
 from wagtail.wagtailcore.models import Page
@@ -43,31 +47,31 @@ def delete_submission(request, page_id, submission_id):
 
 
 def list_submissions(request, page_id):
+    # We can't create backwards relation to Page in AbstractFormSubmission,
+    # this is why we need to get specific object
     survey_page = get_object_or_404(Page, id=page_id).specific
     SubmissionClass = survey_page.get_submission_class()
 
     if not get_surveys_for_user(request.user).filter(id=page_id).exists():
         raise PermissionDenied
 
-    data_fields = [
-        (field.clean_name, field.label)
-        for field in survey_page.form_fields.all()
-    ]
+    data_fields = survey_page.get_data_fields()
 
     submissions = SubmissionClass.objects.filter(page=survey_page)
+    data_headings = [label for name, label in data_fields]
 
     if request.GET.get('action') == 'CSV':
         # return a CSV instead
         response = HttpResponse(content_type='text/csv; charset=utf-8')
         response['Content-Disposition'] = 'attachment;filename=export.csv'
 
+        # Prevents UnicodeEncodeError for questions with non-ansi symbols
+        data_headings = [text_type(unidecode(label)) for label in data_headings]
+
         writer = csv.writer(response)
-
-        header_row = ['Submission date'] + [label for name, label in data_fields]
-
-        writer.writerow(header_row)
+        writer.writerow(data_headings)
         for s in submissions:
-            data_row = [s.created_at]
+            data_row = []
             form_data = s.get_data()
             for name, label in data_fields:
                 data_row.append(smart_str(form_data.get(name)))
@@ -76,11 +80,10 @@ def list_submissions(request, page_id):
 
     paginator, submissions = paginate(request, submissions)
 
-    data_headings = [label for name, label in data_fields]
     data_rows = []
     for s in submissions:
         form_data = s.get_data()
-        data_row = [s.created_at] + [form_data.get(name) for name, label in data_fields]
+        data_row = [form_data.get(name) for name, label in data_fields]
         data_rows.append({
             "model_id": s.id,
             "fields": data_row
