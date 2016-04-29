@@ -72,7 +72,6 @@ class TestSurveysIndex(TestCase):
         # Create some more survey pages to make pagination kick in
         self.make_survey_pages()
 
-        # Get page two
         response = self.client.get(reverse('wagtailsurveys:index'), {'p': 99999})
 
         # Check response
@@ -98,7 +97,7 @@ class TestSurveysIndex(TestCase):
         self.assertIn(self.survey_page, response.context['survey_pages'])
 
 
-class TestFormsSubmissions(TestCase, WagtailTestUtils):
+class TestFormsSubmissionsList(TestCase, WagtailTestUtils):
     def setUp(self):
         # Create a survey page
         self.survey_page = make_survey_page()
@@ -189,6 +188,15 @@ class TestFormsSubmissions(TestCase, WagtailTestUtils):
         # Check that we got the last page
         self.assertEqual(response.context['submissions'].number, response.context['submissions'].paginator.num_pages)
 
+
+class TestFormsSubmissionsExport(TestCase, WagtailTestUtils):
+    fixtures = ['test.json']
+
+    def setUp(self):
+        self.survey_page = Page.objects.get(url_path='/home/let-us-know/')
+
+        self.login()
+
     def test_list_submissions_csv_export(self):
         response = self.client.get(
             reverse('wagtailsurveys:list_submissions', args=(self.survey_page.id,)),
@@ -197,8 +205,11 @@ class TestFormsSubmissions(TestCase, WagtailTestUtils):
 
         # Check response
         self.assertEqual(response.status_code, 200)
-        data_line = response.content.decode().split("\n")[1]
-        self.assertIn('John', data_line)
+        data_lines = response.content.decode().split("\n")
+
+        self.assertEqual(data_lines[0], 'Submission Date,Your name,Your biography,Your choices\r')
+        self.assertEqual(data_lines[1], "2013-01-01 12:00:00+00:00,Mikalai,Airhead :),bar :)\r")
+        self.assertEqual(data_lines[2], "2014-01-01 12:00:00+00:00,John,Genius,None\r")
 
     def test_list_submissions_csv_export_with_unicode(self):
         unicode_form_submission = FormSubmission.objects.create(

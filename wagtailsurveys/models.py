@@ -52,6 +52,7 @@ class AbstractFormSubmission(models.Model):
     class Meta:
         abstract = True
         verbose_name = _('form submission')
+        ordering = ['created_at']
 
 
 class FormSubmission(AbstractFormSubmission):
