@@ -8,16 +8,12 @@
         "show_in_menus": false,
         "live": true,
         "depth": 1,
-        "content_type": [
-            "wagtailcore",
-            "page"
-        ],
+        "content_type": ["wagtailcore", "page"],
         "path": "0001",
         "url_path": "/",
         "slug": "root"
     }
 },
-
 {
     "pk": 2,
     "model": "wagtailcore.page",
@@ -37,25 +33,175 @@
     "pk": 3,
     "model": "wagtailcore.page",
     "fields": {
-        "title": "Event - Christmas",
-        "numchild": 6,
+        "title": "Let us know!",
+        "numchild": 0,
         "show_in_menus": true,
         "live": true,
         "depth": 3,
-        "content_type": ["wagtailmedia_tests", "eventpage"],
+        "content_type": ["wagtailsurveys_tests", "surveypage"],
         "path": "000100010001",
-        "url_path": "/home/events/",
-        "slug": "event"
+        "url_path": "/home/let-us-know/",
+        "slug": "let-us-know"
     }
 },
 {
     "pk": 3,
-    "model": "wagtailmedia_tests.eventpage",
+    "model": "wagtailsurveys_tests.surveypage",
+    "fields": {}
+},
+{
+    "pk": 4,
+    "model": "wagtailcore.page",
     "fields": {
-        "date_from": "2014-12-25",
-        "location": "The North Pole",
-        "body": "<p>Chestnuts roasting on an open fire</p>",
-        "cost": "Free"
+        "title": "Event page (non survey page)",
+        "numchild": 6,
+        "show_in_menus": false,
+        "live": true,
+        "depth": 3,
+        "content_type": ["wagtailcore", "page"],
+        "path": "000100010002",
+        "url_path": "/home/event",
+        "slug": "home"
+    }
+},
+{
+    "pk": 1,
+    "model": "wagtailsurveys_tests.surveyfield",
+    "fields": {
+        "sort_order": 1,
+        "label": "Your name",
+        "field_type": "singleline",
+        "required": true,
+        "choices": "",
+        "default_value": "",
+        "help_text": "",
+        "page": 3
+    }
+},
+{
+    "pk": 2,
+    "model": "wagtailsurveys_tests.surveyfield",
+    "fields": {
+        "sort_order": 2,
+        "label": "Your biography",
+        "field_type": "multiline",
+        "required": true,
+        "choices": "",
+        "default_value": "",
+        "help_text": "",
+        "page": 3
+    }
+},
+{
+    "pk": 3,
+    "model": "wagtailsurveys_tests.surveyfield",
+    "fields": {
+        "sort_order": 3,
+        "label": "Your choices",
+        "field_type": "checkboxes",
+        "required": false,
+        "choices": "foo,bar,baz",
+        "default_value": "",
+        "help_text": "",
+        "page": 3
+    }
+},
+{
+    "pk": 1,
+    "model": "wagtailsurveys.formsubmission",
+    "fields": {
+        "form_data": "{\"your-name\": \"Mikalai\", \"your-biography\": \"Airhead :)\", \"your-choices\": \"bar :)\"}",
+        "page": 3,
+        "created_at": "2013-01-01T12:00:00.000Z"
+    }
+},
+{
+    "pk": 2,
+    "model": "wagtailsurveys.formsubmission",
+    "fields": {
+        "form_data": "{\"your-name\": \"John\", \"your-biography\": \"Genius\"}",
+        "page": 3,
+        "created_at": "2014-01-01T12:00:00.000Z"
+    }
+},
+{
+    "pk": 3,
+    "model": "auth.group",
+    "fields": {
+        "name": "Site-wide editors",
+        "permissions": [
+            ["access_admin", "wagtailadmin", "admin"],
+            ["add_image", "wagtailimages", "image"],
+            ["change_image", "wagtailimages", "image"],
+            ["delete_image", "wagtailimages", "image"]
+        ]
+    }
+},
+{
+    "pk": 3,
+    "model": "wagtailcore.grouppagepermission",
+    "fields": {
+        "group": ["Site-wide editors"],
+        "page": 2,
+        "permission_type": "edit"
+    }
+},
+{
+    "pk": 4,
+    "model": "auth.group",
+    "fields": {
+        "name": "Event editors",
+        "permissions": [
+            ["access_admin", "wagtailadmin", "admin"],
+            ["add_image", "wagtailimages", "image"],
+            ["change_image", "wagtailimages", "image"],
+            ["delete_image", "wagtailimages", "image"]
+        ]
+    }
+},
+{
+    "pk": 4,
+    "model": "wagtailcore.grouppagepermission",
+    "fields": {
+        "group": ["Event editors"],
+        "page": 4,
+        "permission_type": "add"
+    }
+},
+{
+    "pk": 1,
+    "model": "auth.user",
+    "fields": {
+        "username": "eventeditor",
+        "first_name": "",
+        "last_name": "",
+        "is_active": true,
+        "is_superuser": false,
+        "is_staff": false,
+        "groups": [
+            ["Event editors"]
+        ],
+        "user_permissions": [],
+        "password": "md5$seasalt$1e9bf2bf5606aa5c39852cc30f0f6f22",
+        "email": "eventeditor@example.com"
+    }
+},
+{
+    "pk": 2,
+    "model": "auth.user",
+    "fields": {
+        "username": "siteeditor",
+        "first_name": "",
+        "last_name": "",
+        "is_active": true,
+        "is_superuser": false,
+        "is_staff": false,
+        "groups": [
+            ["Site-wide editors"]
+        ],
+        "user_permissions": [],
+        "password": "md5$seasalt$1e9bf2bf5606aa5c39852cc30f0f6f22",
+        "email": "siteeditor@example.com"
     }
 }
 ]
