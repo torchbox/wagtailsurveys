@@ -56,9 +56,16 @@ class SurveyFormField(surveys_models.AbstractFormField):
 
 ```
 
-`AbstractSurvey` expects `survey_form_fields` to be defined. Any additional fields are treated as ordinary page content - note that `SurveyPage` is responsible for serving both the form page itself and the landing page after submission, so the model definition should include all necessary content fields for both of those views.
+`AbstractSurvey` expects `survey_form_fields` to be defined.
+Any additional fields are treated as ordinary page content - note that `SurveyPage`
+is responsible for serving both the form page itself and the landing page after submission,
+so the model definition should include all necessary content fields for both of those views.
 
-You now need to create two templates named `survey_page.html` and `survey_page_landing.html` (where `survey_page` is the underscore-formatted version of the class name). `survey_page.html` differs from a standard Wagtail template in that it is passed a variable `form`, containing a Django `Form` object, in addition to the usual `page` variable. A very basic template for the form would thus be:
+You now need to create two templates named `survey_page.html` and `survey_page_landing.html`
+(where `survey_page` is the underscore-formatted version of the class name). `survey_page.html`
+differs from a standard Wagtail template in that it is passed a variable `form`,
+containing a Django `Form` object, in addition to the usual `page` variable.
+A very basic template for the survey page would thus be:
 
 ```django
 {% load wagtailcore_tags %}
@@ -82,6 +89,172 @@ You now need to create two templates named `survey_page.html` and `survey_page_l
 ```
 
 `survey_page_landing.html` is a regular Wagtail template, displayed after the user makes a successful form submission.
+
+
+### Customising
+
+#### Custom `related_name` for form fields
+
+If you want to change `related_name` for form fields
+(by default `AbstractSurvey` expects `survey_form_fields` to be defined),
+you will need to override `get_form_fields` method.
+You can do this as shown below.
+
+```python
+from modelcluster.fields import ParentalKey
+
+from wagtail.wagtailadmin.edit_handlers import FieldPanel, InlinePanel
+from wagtail.wagtailcore.fields import RichTextField
+
+from wagtailsurveys import models as surveys_models
+
+
+class SurveyPage(surveys_models.AbstractSurvey):
+    intro = RichTextField(blank=True)
+    thank_you_text = RichTextField(blank=True)
+
+    content_panels = surveys_models.AbstractSurvey.content_panels + [
+        FieldPanel('intro', classname="full"),
+        InlinePanel('custom_form_fields', label="Form fields"),
+        FieldPanel('thank_you_text', classname="full"),
+    ]
+
+    def get_form_fields(self):
+        return self.custom_form_fields.all()
+
+
+class SurveyFormField(surveys_models.AbstractFormField):
+    page = ParentalKey(SurveyPage, related_name='custom_form_fields')
+```
+
+#### Custom form submission model
+
+If you need to save additional data, you can use custom form submission model.
+To do this, you need to:
+* Define model that extends `wagtailsurveys.models.AbstractFormSubmission`.
+* Override `get_submission_class` and `process_form_submission` methods in page model.
+
+For example:
+```python
+import json
+
+from django.conf import settings
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db import models
+from modelcluster.fields import ParentalKey
+
+from wagtail.wagtailadmin.edit_handlers import FieldPanel, InlinePanel
+from wagtail.wagtailcore.fields import RichTextField
+
+from wagtailsurveys import models as surveys_models
+
+
+class SurveyWithCustomSubmissionPage(surveys_models.AbstractSurvey):
+    intro = RichTextField(blank=True)
+    thank_you_text = RichTextField(blank=True)
+
+    content_panels = surveys_models.AbstractSurvey.content_panels + [
+        FieldPanel('intro', classname="full"),
+        InlinePanel('survey_form_fields', label="Form fields"),
+        FieldPanel('thank_you_text', classname="full"),
+    ]
+
+    def get_submission_class(self):
+        return CustomFormSubmission
+
+    def process_form_submission(self, form):
+        self.get_submission_class().objects.create(
+            form_data=json.dumps(form.cleaned_data, cls=DjangoJSONEncoder),
+            page=self, user=form.user
+        )
+
+
+class SurveyWithCustomSubmissionFormField(surveys_models.AbstractFormField):
+    page = ParentalKey(SurveyWithCustomSubmissionPage, related_name='survey_form_fields')
+
+
+class CustomFormSubmission(surveys_models.AbstractFormSubmission):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('page', 'user')
+```
+
+#### Add custom data to CSV export
+
+If you want to add custom data to CSV export, you will need to:
+* Override `get_data_fields` method in page model.
+* Override `get_data` in submission model.
+
+The following example shows how to add a username to CSV export:
+
+```python
+import json
+
+from django.conf import settings
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db import models
+from modelcluster.fields import ParentalKey
+
+from wagtail.wagtailadmin.edit_handlers import FieldPanel, InlinePanel
+from wagtail.wagtailcore.fields import RichTextField
+
+from wagtailsurveys import models as surveys_models
+
+
+class SurveyWithCustomSubmissionPage(surveys_models.AbstractSurvey):
+    intro = RichTextField(blank=True)
+    thank_you_text = RichTextField(blank=True)
+
+    content_panels = surveys_models.AbstractSurvey.content_panels + [
+        FieldPanel('intro', classname="full"),
+        InlinePanel('survey_form_fields', label="Form fields"),
+        FieldPanel('thank_you_text', classname="full"),
+    ]
+
+    def get_data_fields(self):
+        data_fields = [
+            ('username', 'Username'),
+        ]
+        data_fields += super(SurveyWithCustomSubmissionPage, self).get_data_fields()
+
+        return data_fields
+
+    def get_submission_class(self):
+        return CustomFormSubmission
+
+    def process_form_submission(self, form):
+        self.get_submission_class().objects.create(
+            form_data=json.dumps(form.cleaned_data, cls=DjangoJSONEncoder),
+            page=self, user=form.user
+        )
+
+
+class SurveyWithCustomSubmissionFormField(surveys_models.AbstractFormField):
+    page = ParentalKey(SurveyWithCustomSubmissionPage, related_name='survey_form_fields')
+
+
+class CustomFormSubmission(surveys_models.AbstractFormSubmission):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+
+    def get_data(self):
+        form_data = super(CustomFormSubmission, self).get_data()
+        form_data.update({
+            'username': self.user.username,
+        })
+
+        return form_data
+
+    class Meta:
+        unique_together = ('page', 'user')
+```
+
+Note that this code also changes submissions list view.
+
+
+#### TODO: How to check that submission is already exists
+
+
 
 ## How to run tests
 
