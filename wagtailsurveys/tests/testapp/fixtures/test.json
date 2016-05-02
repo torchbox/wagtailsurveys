@@ -19,7 +19,7 @@
     "model": "wagtailcore.page",
     "fields": {
         "title": "Welcome to the Wagtail test site!",
-        "numchild": 6,
+        "numchild": 3,
         "show_in_menus": false,
         "live": true,
         "depth": 2,
@@ -54,14 +54,37 @@
     "model": "wagtailcore.page",
     "fields": {
         "title": "Event page (non survey page)",
-        "numchild": 6,
+        "numchild": 0,
         "show_in_menus": false,
         "live": true,
         "depth": 3,
         "content_type": ["wagtailcore", "page"],
         "path": "000100010002",
-        "url_path": "/home/event",
-        "slug": "home"
+        "url_path": "/home/event/",
+        "slug": "event"
+    }
+},
+{
+    "pk": 5,
+    "model": "wagtailcore.page",
+    "fields": {
+        "title": "Don't touch this survey!",
+        "numchild": 0,
+        "show_in_menus": true,
+        "live": true,
+        "depth": 3,
+        "content_type": ["wagtailsurveys_tests", "surveywithcustomsubmissionpage"],
+        "path": "000100010003",
+        "url_path": "/home/dont-touch-this-survey/",
+        "slug": "dont-touch-this-survey"
+    }
+},
+{
+    "pk": 5,
+    "model": "wagtailsurveys_tests.surveywithcustomsubmissionpage",
+    "fields": {
+        "intro": "<p>Another boring survey...</p>",
+        "thank_you_text": "<p>Thank you for your patience!</p>"
     }
 },
 {
@@ -108,9 +131,51 @@
 },
 {
     "pk": 1,
+    "model": "wagtailsurveys_tests.surveywithcustomsubmissionformfield",
+    "fields": {
+        "sort_order": 1,
+        "label": "Your name",
+        "field_type": "singleline",
+        "required": true,
+        "choices": "",
+        "default_value": "",
+        "help_text": "",
+        "page": 5
+    }
+},
+{
+    "pk": 2,
+    "model": "wagtailsurveys_tests.surveywithcustomsubmissionformfield",
+    "fields": {
+        "sort_order": 2,
+        "label": "Your biography",
+        "field_type": "multiline",
+        "required": true,
+        "choices": "",
+        "default_value": "",
+        "help_text": "",
+        "page": 5
+    }
+},
+{
+    "pk": 3,
+    "model": "wagtailsurveys_tests.surveywithcustomsubmissionformfield",
+    "fields": {
+        "sort_order": 3,
+        "label": "Your choices",
+        "field_type": "checkboxes",
+        "required": false,
+        "choices": "foo,bar,baz",
+        "default_value": "",
+        "help_text": "",
+        "page": 5
+    }
+},
+{
+    "pk": 1,
     "model": "wagtailsurveys.formsubmission",
     "fields": {
-        "form_data": "{\"your-name\": \"Mikalai\", \"your-biography\": \"Airhead :)\", \"your-choices\": \"bar :)\"}",
+        "form_data": "{\"your-name\": \"Mikalai\", \"your-biography\": \"Airhead :)\", \"your-choices\": \"bar\"}",
         "page": 3,
         "created_at": "2013-01-01T12:00:00.000Z"
     }
@@ -121,6 +186,26 @@
     "fields": {
         "form_data": "{\"your-name\": \"John\", \"your-biography\": \"Genius\"}",
         "page": 3,
+        "created_at": "2014-01-01T12:00:00.000Z"
+    }
+},
+{
+    "pk": 1,
+    "model": "wagtailsurveys_tests.customsubmission",
+    "fields": {
+        "form_data": "{\"your-name\": \"Mikalai\", \"your-biography\": \"Airhead :)\", \"your-choices\": \"bar\"}",
+        "user": 1,
+        "page": 5,
+        "created_at": "2013-01-01T12:00:00.000Z"
+    }
+},
+{
+    "pk": 2,
+    "model": "wagtailsurveys_tests.customsubmission",
+    "fields": {
+        "form_data": "{\"your-name\": \"John\", \"your-biography\": \"Genius\"}",
+        "user": 2,
+        "page": 5,
         "created_at": "2014-01-01T12:00:00.000Z"
     }
 },
@@ -202,6 +287,22 @@
         "user_permissions": [],
         "password": "md5$seasalt$1e9bf2bf5606aa5c39852cc30f0f6f22",
         "email": "siteeditor@example.com"
+    }
+},
+{
+    "pk": 3,
+    "model": "auth.user",
+    "fields": {
+        "username": "justuser",
+        "first_name": "",
+        "last_name": "",
+        "is_active": true,
+        "is_superuser": false,
+        "is_staff": false,
+        "groups": [],
+        "user_permissions": [],
+        "password": "md5$seasalt$1e9bf2bf5606aa5c39852cc30f0f6f22",
+        "email": "justuser@example.com"
     }
 }
 ]

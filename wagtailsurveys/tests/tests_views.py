@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 import json
 
+from django.contrib.auth import get_user_model
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 
@@ -10,8 +11,8 @@ from wagtail.tests.utils import WagtailTestUtils
 from wagtail.wagtailcore.models import Page
 
 from wagtailsurveys.models import FormSubmission
-from wagtailsurveys.tests.testapp.models import SurveyPage
-from wagtailsurveys.tests.utils import make_survey_page
+from wagtailsurveys.tests.testapp.models import SurveyPage, CustomSubmission
+from wagtailsurveys.tests import utils as tests_utils
 
 
 class TestSurveysIndex(TestCase):
@@ -100,7 +101,7 @@ class TestSurveysIndex(TestCase):
 class TestFormsSubmissionsList(TestCase, WagtailTestUtils):
     def setUp(self):
         # Create a survey page
-        self.survey_page = make_survey_page()
+        self.survey_page = tests_utils.make_survey_page()
 
         # Add a couple of form submissions
         old_form_submission = FormSubmission.objects.create(
@@ -189,6 +190,128 @@ class TestFormsSubmissionsList(TestCase, WagtailTestUtils):
         self.assertEqual(response.context['submissions'].number, response.context['submissions'].paginator.num_pages)
 
 
+class TestCustomFormsSubmissionsList(TestCase, WagtailTestUtils):
+    def create_test_user_without_admin(self, username):
+        user_model = get_user_model()
+
+        user_data = dict()
+        user_data[user_model.USERNAME_FIELD] = username
+        user_data['password'] = 'password'
+
+        for field in user_model.REQUIRED_FIELDS:
+            user_data[field] = field
+
+        return user_model.objects.create(**user_data)
+
+    def setUp(self):
+        # Create a survey page
+        self.survey_page = tests_utils.make_survey_page_with_custom_submission()
+
+        # Add a couple of form submissions
+        old_form_submission = CustomSubmission.objects.create(
+            user=self.create_test_user_without_admin('user-john'),
+            page=self.survey_page,
+            form_data=json.dumps({
+                'your-name': "John",
+                'your-biography': "I'm a lazy person",
+            }),
+        )
+        old_form_submission.submit_time = '2013-01-01T12:00:00.000Z'
+        old_form_submission.save()
+
+        new_form_submission = CustomSubmission.objects.create(
+            user=self.create_test_user_without_admin('user-m1kola'),
+            page=self.survey_page,
+            form_data=json.dumps({
+                'your-name': "Mikalai",
+                'your-biography': "You don't want to know",
+            }),
+        )
+        new_form_submission.submit_time = '2014-01-01T12:00:00.000Z'
+        new_form_submission.save()
+
+        # Login
+        self.login()
+
+    def make_list_submissions(self):
+        """
+        This makes 100 submissions to test pagination on the forms submissions page
+        """
+        for i in range(100):
+            submission = CustomSubmission(
+                user=self.create_test_user_without_admin('generated-username-%s' % i),
+                page=self.survey_page,
+                form_data=json.dumps({
+                    'hello': 'world'
+                })
+            )
+            submission.save()
+
+    def test_list_submissions(self):
+        response = self.client.get(reverse('wagtailsurveys:list_submissions', args=(self.survey_page.id,)))
+
+        # Check response
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'wagtailsurveys/index_submissions.html')
+        self.assertEqual(len(response.context['data_rows']), 2)
+
+        # CustomSubmission have custom field. This field should appear in the list
+        self.assertContains(response, '<th>Username</th>', html=True)
+        self.assertContains(response, '<td>user-m1kola</td>', html=True)
+        self.assertContains(response, '<td>user-john</td>', html=True)
+
+    def test_list_submissions_pagination(self):
+        self.make_list_submissions()
+
+        response = self.client.get(reverse('wagtailsurveys:list_submissions', args=(self.survey_page.id,)), {'p': 2})
+
+        # Check response
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'wagtailsurveys/index_submissions.html')
+
+        # Check that we got the correct page
+        self.assertEqual(response.context['submissions'].number, 2)
+
+        # CustomSubmission have custom field. This field should appear in the list
+        self.assertContains(response, '<th>Username</th>', html=True)
+        self.assertContains(response, 'generated-username-', count=20)
+
+    def test_list_submissions_pagination_invalid(self):
+        self.make_list_submissions()
+
+        response = self.client.get(
+            reverse('wagtailsurveys:list_submissions', args=(self.survey_page.id,)), {'p': 'Hello World!'}
+        )
+
+        # Check response
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'wagtailsurveys/index_submissions.html')
+
+        # Check that we got page one
+        self.assertEqual(response.context['submissions'].number, 1)
+
+        # CustomSubmission have custom field. This field should appear in the list
+        self.assertContains(response, '<th>Username</th>', html=True)
+
+    def test_list_submissions_pagination_out_of_range(self):
+        self.make_list_submissions()
+
+        response = self.client.get(
+            reverse('wagtailsurveys:list_submissions', args=(self.survey_page.id,)),
+            {'p': 99999}
+        )
+
+        # Check response
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'wagtailsurveys/index_submissions.html')
+
+        # Check that we got the last page
+        self.assertEqual(response.context['submissions'].number, response.context['submissions'].paginator.num_pages)
+
+        # CustomSubmission have custom field. This field should appear in the list
+        self.assertContains(response, '<th>Username</th>', html=True)
+
+
 class TestFormsSubmissionsExport(TestCase, WagtailTestUtils):
     fixtures = ['test.json']
 
@@ -208,11 +331,58 @@ class TestFormsSubmissionsExport(TestCase, WagtailTestUtils):
         data_lines = response.content.decode().split("\n")
 
         self.assertEqual(data_lines[0], 'Submission Date,Your name,Your biography,Your choices\r')
-        self.assertEqual(data_lines[1], "2013-01-01 12:00:00+00:00,Mikalai,Airhead :),bar :)\r")
+        self.assertEqual(data_lines[1], "2013-01-01 12:00:00+00:00,Mikalai,Airhead :),bar\r")
         self.assertEqual(data_lines[2], "2014-01-01 12:00:00+00:00,John,Genius,None\r")
 
     def test_list_submissions_csv_export_with_unicode(self):
         unicode_form_submission = FormSubmission.objects.create(
+            page=self.survey_page,
+            form_data=json.dumps({
+                'your-name': "Unicode boy",
+                'your-biography': 'こんにちは、世界',
+            }),
+        )
+        unicode_form_submission.submit_time = '2014-01-02T12:00:00.000Z'
+        unicode_form_submission.save()
+
+        response = self.client.get(
+            reverse('wagtailsurveys:list_submissions', args=(self.survey_page.id,)),
+            {'action': 'CSV'}
+        )
+
+        # Check response
+        self.assertEqual(response.status_code, 200)
+        data_line = response.content.decode('utf-8').split("\n")[3]
+        self.assertIn('こんにちは、世界', data_line)
+
+
+class TestCustomFormsSubmissionsExport(TestCase, WagtailTestUtils):
+    fixtures = ['test.json']
+
+    def setUp(self):
+        self.survey_page = Page.objects.get(url_path='/home/dont-touch-this-survey/')
+
+        self.login()
+
+    def test_list_submissions_csv_export(self):
+        response = self.client.get(
+            reverse('wagtailsurveys:list_submissions', args=(self.survey_page.id,)),
+            {'action': 'CSV'}
+        )
+
+        # Check response
+        self.assertEqual(response.status_code, 200)
+        data_lines = response.content.decode().split("\n")
+
+        self.assertEqual(data_lines[0], 'Username,Submission Date,Your name,Your biography,Your choices\r')
+        self.assertEqual(data_lines[1], "eventeditor,2013-01-01 12:00:00+00:00,Mikalai,Airhead :),bar\r")
+        self.assertEqual(data_lines[2], "siteeditor,2014-01-01 12:00:00+00:00,John,Genius,None\r")
+
+    def test_list_submissions_csv_export_with_unicode(self):
+        user_model = get_user_model()
+
+        unicode_form_submission = CustomSubmission.objects.create(
+            user=user_model.objects.get(**{user_model.USERNAME_FIELD: 'justuser'}),
             page=self.survey_page,
             form_data=json.dumps({
                 'your-name': "Unicode boy",
@@ -275,3 +445,47 @@ class TestDeleteFormSubmission(TestCase):
 
         # Check that the deletion has not happened
         self.assertEqual(FormSubmission.objects.count(), 2)
+
+
+class TestDeleteCustomFormsSubmissions(TestCase):
+    fixtures = ['test.json']
+
+    def setUp(self):
+        self.assertTrue(self.client.login(username='siteeditor', password='password'))
+        self.survey_page = Page.objects.get(url_path='/home/dont-touch-this-survey/')
+
+    def test_delete_submission_show_cofirmation(self):
+        response = self.client.get(reverse(
+            'wagtailsurveys:delete_submission',
+            args=(self.survey_page.id, CustomSubmission.objects.first().id)
+        ))
+        # Check show confirm page when HTTP method is GET
+        self.assertTemplateUsed(response, 'wagtailsurveys/confirm_delete.html')
+
+        # Check that the deletion has not happened with GET request
+        self.assertEqual(CustomSubmission.objects.count(), 2)
+
+    def test_delete_submission_with_permissions(self):
+        response = self.client.post(reverse(
+            'wagtailsurveys:delete_submission',
+            args=(self.survey_page.id, CustomSubmission.objects.first().id)
+        ))
+
+        # Check that the submission is gone
+        self.assertEqual(CustomSubmission.objects.count(), 1)
+        # Should be redirected to list of submissions
+        self.assertRedirects(response, reverse("wagtailsurveys:list_submissions", args=(self.survey_page.id,)))
+
+    def test_delete_submission_bad_permissions(self):
+        self.assertTrue(self.client.login(username="eventeditor", password="password"))
+
+        response = self.client.post(reverse(
+            'wagtailsurveys:delete_submission',
+            args=(self.survey_page.id, CustomSubmission.objects.first().id)
+        ))
+
+        # Check that the user recieved a 403 response
+        self.assertEqual(response.status_code, 403)
+
+        # Check that the deletion has not happened
+        self.assertEqual(CustomSubmission.objects.count(), 2)

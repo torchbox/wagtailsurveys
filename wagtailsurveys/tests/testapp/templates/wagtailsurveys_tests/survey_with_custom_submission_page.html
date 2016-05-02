@@ -1,0 +1,20 @@
+{% extends "demo/base.html" %}
+{% load wagtailcore_tags i18n %}
+
+{% block content %}
+
+    {% if user.is_authenticated and user.is_active or request.is_preview %}
+        {% if form %}
+            {% include "demo/includes/intro.html" with intro=self.intro only %}
+            <form action="{% pageurl self %}" method="POST">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <input type="submit">
+            </form>
+        {% else %}
+            {% trans 'The form is already filled.' %}
+        {% endif %}
+    {% else %}
+        {% trans 'You must log in first.' %}
+    {% endif %}
+{% endblock %}
