@@ -175,9 +175,6 @@ class SurveyWithCustomSubmissionFormField(surveys_models.AbstractFormField):
 
 class CustomFormSubmission(surveys_models.AbstractFormSubmission):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-
-    class Meta:
-        unique_together = ('page', 'user')
 ```
 
 #### Add custom data to CSV export
@@ -244,17 +241,101 @@ class CustomFormSubmission(surveys_models.AbstractFormSubmission):
         })
 
         return form_data
-
-    class Meta:
-        unique_together = ('page', 'user')
 ```
 
 Note that this code also changes submissions list view.
 
 
-#### TODO: How to check that submission is already exists
+#### How to check that submission already exists for a user
+
+If you want to forbid users to take survey or poll twice,
+you need to override `serve` method in page model.
+
+For example:
+```python
+import json
+
+from django.conf import settings
+from django.core.serializers.json import DjangoJSONEncoder
+from django.db import models
+from django.shortcuts import render
+from modelcluster.fields import ParentalKey
+
+from wagtail.wagtailadmin.edit_handlers import FieldPanel, InlinePanel
+from wagtail.wagtailcore.fields import RichTextField
+
+from wagtailsurveys import models as surveys_models
 
 
+class SurveyWithCustomSubmissionPage(surveys_models.AbstractSurvey):
+    intro = RichTextField(blank=True)
+    thank_you_text = RichTextField(blank=True)
+
+    content_panels = surveys_models.AbstractSurvey.content_panels + [
+        FieldPanel('intro', classname="full"),
+        InlinePanel('survey_form_fields', label="Form fields"),
+        FieldPanel('thank_you_text', classname="full"),
+    ]
+
+    def get_submission_class(self):
+        return CustomFormSubmission
+
+    def process_form_submission(self, form):
+        self.get_submission_class().objects.create(
+            form_data=json.dumps(form.cleaned_data, cls=DjangoJSONEncoder),
+            page=self, user=form.user
+        )
+
+    def serve(self, request, *args, **kwargs):
+        if self.get_submission_class().objects.filter(page=self, user__pk=request.user.pk).exists():
+            return render(
+                request,
+                self.template,
+                self.get_context(request)
+            )
+
+        return super(SurveyWithCustomSubmissionPage, self).serve(request, *args, **kwargs)
+
+
+class SurveyWithCustomSubmissionFormField(surveys_models.AbstractFormField):
+    page = ParentalKey(SurveyWithCustomSubmissionPage, related_name='survey_form_fields')
+
+
+class CustomFormSubmission(surveys_models.AbstractFormSubmission):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('page', 'user')
+```
+
+Now you need to create template like this:
+
+```django
+{% load wagtailcore_tags %}
+<html>
+    <head>
+        <title>{{ page.title }}</title>
+    </head>
+    <body>
+        <h1>{{ page.title }}</h1>
+
+        {% if user.is_authenticated and user.is_active or request.is_preview %}
+            {% if form %}
+                <div>{{ self.intro|richtext }}</div>
+                <form action="{% pageurl self %}" method="POST">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <input type="submit">
+                </form>
+            {% else %}
+                <div>The survey has already been passed.</div>
+            {% endif %}
+        {% else %}
+            <div>To take survey, you must to log in.</div>
+        {% endif %}
+    </body>
+</html>
+```
 
 ## How to run tests
 
