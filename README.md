@@ -89,6 +89,7 @@ A very basic template for the survey page would thus be:
 ```
 
 `survey_page_landing.html` is a regular Wagtail template, displayed after the user makes a successful form submission.
+You also can change landing template by specifying an `landing_page_template` attribute on your page model.
 
 
 ### Customising
