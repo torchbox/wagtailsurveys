@@ -148,9 +148,30 @@ class TestFormsSubmissionsList(TestCase, WagtailTestUtils):
         self.assertTemplateUsed(response, 'wagtailsurveys/index_submissions.html')
         self.assertEqual(len(response.context['data_rows']), 2)
 
-    def test_list_submissions_filtering(self):
+    def test_list_submissions_filtering_date_from(self):
         response = self.client.get(
             reverse('wagtailsurveys:list_submissions', args=(self.survey_page.id, )), {'date_from': '01/01/2014'}
+        )
+
+        # Check response
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'wagtailsurveys/index_submissions.html')
+        self.assertEqual(len(response.context['data_rows']), 1)
+
+    def test_list_submissions_filtering_date_to(self):
+        response = self.client.get(
+            reverse('wagtailsurveys:list_submissions', args=(self.survey_page.id, )), {'date_to': '12/31/2013'}
+        )
+
+        # Check response
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'wagtailsurveys/index_submissions.html')
+        self.assertEqual(len(response.context['data_rows']), 1)
+
+    def test_list_submissions_filtering_range(self):
+        response = self.client.get(
+            reverse('wagtailsurveys:list_submissions', args=(self.survey_page.id, )),
+            {'date_from': '12/31/2013', 'date_to': '01/02/2014'}
         )
 
         # Check response
@@ -270,9 +291,38 @@ class TestCustomFormsSubmissionsList(TestCase, WagtailTestUtils):
         self.assertContains(response, '<td>user-m1kola</td>', html=True)
         self.assertContains(response, '<td>user-john</td>', html=True)
 
-    def test_list_submissions_filtering(self):
+    def test_list_submissions_filtering_date_from(self):
         response = self.client.get(
             reverse('wagtailsurveys:list_submissions', args=(self.survey_page.id, )), {'date_from': '01/01/2014'}
+        )
+
+        # Check response
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'wagtailsurveys/index_submissions.html')
+        self.assertEqual(len(response.context['data_rows']), 1)
+
+        # CustomSubmission have custom field. This field should appear in the list
+        self.assertContains(response, '<th>Username</th>', html=True)
+        self.assertContains(response, '<td>user-m1kola</td>', html=True)
+
+    def test_list_submissions_filtering_date_to(self):
+        response = self.client.get(
+            reverse('wagtailsurveys:list_submissions', args=(self.survey_page.id, )), {'date_to': '12/31/2013'}
+        )
+
+        # Check response
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'wagtailsurveys/index_submissions.html')
+        self.assertEqual(len(response.context['data_rows']), 1)
+
+        # CustomSubmission have custom field. This field should appear in the list
+        self.assertContains(response, '<th>Username</th>', html=True)
+        self.assertContains(response, '<td>user-john</td>', html=True)
+
+    def test_list_submissions_filtering_range(self):
+        response = self.client.get(
+            reverse('wagtailsurveys:list_submissions', args=(self.survey_page.id, )),
+            {'date_from': '12/31/2013', 'date_to': '01/02/2014'}
         )
 
         # Check response
@@ -355,8 +405,47 @@ class TestFormsSubmissionsExport(TestCase, WagtailTestUtils):
         data_lines = response.content.decode().split("\n")
 
         self.assertEqual(data_lines[0], 'Submission Date,Your name,Your biography,Your choices\r')
-        self.assertEqual(data_lines[1], "2013-01-01 12:00:00+00:00,Mikalai,Airhead :),bar\r")
-        self.assertEqual(data_lines[2], "2014-01-01 12:00:00+00:00,John,Genius,None\r")
+        self.assertEqual(data_lines[1], '2013-01-01 12:00:00+00:00,Mikalai,Airhead :),bar\r')
+        self.assertEqual(data_lines[2], '2014-01-01 12:00:00+00:00,John,Genius,None\r')
+
+    def test_list_submissions_csv_export_with_date_from_filtering(self):
+        response = self.client.get(
+            reverse('wagtailsurveys:list_submissions', args=(self.survey_page.id,)),
+            {'action': 'CSV', 'date_from': '01/01/2014'}
+        )
+
+        # Check response
+        self.assertEqual(response.status_code, 200)
+        data_lines = response.content.decode().split("\n")
+
+        self.assertEqual(data_lines[0], 'Submission Date,Your name,Your biography,Your choices\r')
+        self.assertEqual(data_lines[1], '2014-01-01 12:00:00+00:00,John,Genius,None\r')
+
+    def test_list_submissions_csv_export_with_date_to_filtering(self):
+        response = self.client.get(
+            reverse('wagtailsurveys:list_submissions', args=(self.survey_page.id,)),
+            {'action': 'CSV', 'date_to': '12/31/2013'}
+        )
+
+        # Check response
+        self.assertEqual(response.status_code, 200)
+        data_lines = response.content.decode().split("\n")
+
+        self.assertEqual(data_lines[0], 'Submission Date,Your name,Your biography,Your choices\r')
+        self.assertEqual(data_lines[1], '2013-01-01 12:00:00+00:00,Mikalai,Airhead :),bar\r')
+
+    def test_list_submissions_csv_export_with_range_filtering(self):
+        response = self.client.get(
+            reverse('wagtailsurveys:list_submissions', args=(self.survey_page.id,)),
+            {'action': 'CSV', 'date_from': '12/31/2013', 'date_to': '01/02/2014'}
+        )
+
+        # Check response
+        self.assertEqual(response.status_code, 200)
+        data_lines = response.content.decode().split("\n")
+
+        self.assertEqual(data_lines[0], 'Submission Date,Your name,Your biography,Your choices\r')
+        self.assertEqual(data_lines[1], '2014-01-01 12:00:00+00:00,John,Genius,None\r')
 
     def test_list_submissions_csv_export_with_unicode(self):
         unicode_form_submission = FormSubmission.objects.create(
@@ -399,8 +488,47 @@ class TestCustomFormsSubmissionsExport(TestCase, WagtailTestUtils):
         data_lines = response.content.decode().split("\n")
 
         self.assertEqual(data_lines[0], 'Username,Submission Date,Your name,Your biography,Your choices\r')
-        self.assertEqual(data_lines[1], "eventeditor,2013-01-01 12:00:00+00:00,Mikalai,Airhead :),bar\r")
-        self.assertEqual(data_lines[2], "siteeditor,2014-01-01 12:00:00+00:00,John,Genius,None\r")
+        self.assertEqual(data_lines[1], 'eventeditor,2013-01-01 12:00:00+00:00,Mikalai,Airhead :),bar\r')
+        self.assertEqual(data_lines[2], 'siteeditor,2014-01-01 12:00:00+00:00,John,Genius,None\r')
+
+    def test_list_submissions_csv_export_with_date_from_filtering(self):
+        response = self.client.get(
+            reverse('wagtailsurveys:list_submissions', args=(self.survey_page.id,)),
+            {'action': 'CSV', 'date_from': '01/01/2014'}
+        )
+
+        # Check response
+        self.assertEqual(response.status_code, 200)
+        data_lines = response.content.decode().split("\n")
+
+        self.assertEqual(data_lines[0], 'Username,Submission Date,Your name,Your biography,Your choices\r')
+        self.assertEqual(data_lines[1], 'siteeditor,2014-01-01 12:00:00+00:00,John,Genius,None\r')
+
+    def test_list_submissions_csv_export_with_date_to_filtering(self):
+        response = self.client.get(
+            reverse('wagtailsurveys:list_submissions', args=(self.survey_page.id,)),
+            {'action': 'CSV', 'date_to': '12/31/2013'}
+        )
+
+        # Check response
+        self.assertEqual(response.status_code, 200)
+        data_lines = response.content.decode().split("\n")
+
+        self.assertEqual(data_lines[0], 'Username,Submission Date,Your name,Your biography,Your choices\r')
+        self.assertEqual(data_lines[1], 'eventeditor,2013-01-01 12:00:00+00:00,Mikalai,Airhead :),bar\r')
+
+    def test_list_submissions_csv_export_with_range_filtering(self):
+        response = self.client.get(
+            reverse('wagtailsurveys:list_submissions', args=(self.survey_page.id,)),
+            {'action': 'CSV', 'date_from': '12/31/2013', 'date_to': '01/02/2014'}
+        )
+
+        # Check response
+        self.assertEqual(response.status_code, 200)
+        data_lines = response.content.decode().split("\n")
+
+        self.assertEqual(data_lines[0], 'Username,Submission Date,Your name,Your biography,Your choices\r')
+        self.assertEqual(data_lines[1], 'siteeditor,2014-01-01 12:00:00+00:00,John,Genius,None\r')
 
     def test_list_submissions_csv_export_with_unicode(self):
         user_model = get_user_model()
