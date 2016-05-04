@@ -104,3 +104,14 @@ class FormBuilder(object):
 
     def get_form_class(self):
         return type(str('WagtailSurveysForm'), (BaseForm,), self.formfields)
+
+
+class SelectDateForm(django.forms.Form):
+    date_from = django.forms.DateTimeField(
+        required=False,
+        widget=django.forms.DateInput(attrs={'placeholder': 'Date from'})
+    )
+    date_to = django.forms.DateTimeField(
+        required=False,
+        widget=django.forms.DateInput(attrs={'placeholder': 'Date to'})
+    )

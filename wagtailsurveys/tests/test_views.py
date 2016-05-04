@@ -111,7 +111,7 @@ class TestFormsSubmissionsList(TestCase, WagtailTestUtils):
                 'your-biography': "I'm a lazy person",
             }),
         )
-        old_form_submission.submit_time = '2013-01-01T12:00:00.000Z'
+        old_form_submission.created_at = '2013-01-01T12:00:00.000Z'
         old_form_submission.save()
 
         new_form_submission = FormSubmission.objects.create(
@@ -121,7 +121,7 @@ class TestFormsSubmissionsList(TestCase, WagtailTestUtils):
                 'your-biography': "You don't want to know",
             }),
         )
-        new_form_submission.submit_time = '2014-01-01T12:00:00.000Z'
+        new_form_submission.created_at = '2014-01-01T12:00:00.000Z'
         new_form_submission.save()
 
         # Login
@@ -147,6 +147,16 @@ class TestFormsSubmissionsList(TestCase, WagtailTestUtils):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'wagtailsurveys/index_submissions.html')
         self.assertEqual(len(response.context['data_rows']), 2)
+
+    def test_list_submissions_filtering(self):
+        response = self.client.get(
+            reverse('wagtailsurveys:list_submissions', args=(self.survey_page.id, )), {'date_from': '01/01/2014'}
+        )
+
+        # Check response
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'wagtailsurveys/index_submissions.html')
+        self.assertEqual(len(response.context['data_rows']), 1)
 
     def test_list_submissions_pagination(self):
         self.make_list_submissions()
@@ -216,7 +226,7 @@ class TestCustomFormsSubmissionsList(TestCase, WagtailTestUtils):
                 'your-biography': "I'm a lazy person",
             }),
         )
-        old_form_submission.submit_time = '2013-01-01T12:00:00.000Z'
+        old_form_submission.created_at = '2013-01-01T12:00:00.000Z'
         old_form_submission.save()
 
         new_form_submission = CustomSubmission.objects.create(
@@ -227,7 +237,7 @@ class TestCustomFormsSubmissionsList(TestCase, WagtailTestUtils):
                 'your-biography': "You don't want to know",
             }),
         )
-        new_form_submission.submit_time = '2014-01-01T12:00:00.000Z'
+        new_form_submission.created_at = '2014-01-01T12:00:00.000Z'
         new_form_submission.save()
 
         # Login
@@ -259,6 +269,20 @@ class TestCustomFormsSubmissionsList(TestCase, WagtailTestUtils):
         self.assertContains(response, '<th>Username</th>', html=True)
         self.assertContains(response, '<td>user-m1kola</td>', html=True)
         self.assertContains(response, '<td>user-john</td>', html=True)
+
+    def test_list_submissions_filtering(self):
+        response = self.client.get(
+            reverse('wagtailsurveys:list_submissions', args=(self.survey_page.id, )), {'date_from': '01/01/2014'}
+        )
+
+        # Check response
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'wagtailsurveys/index_submissions.html')
+        self.assertEqual(len(response.context['data_rows']), 1)
+
+        # CustomSubmission have custom field. This field should appear in the list
+        self.assertContains(response, '<th>Username</th>', html=True)
+        self.assertContains(response, '<td>user-m1kola</td>', html=True)
 
     def test_list_submissions_pagination(self):
         self.make_list_submissions()
@@ -342,7 +366,7 @@ class TestFormsSubmissionsExport(TestCase, WagtailTestUtils):
                 'your-biography': 'こんにちは、世界',
             }),
         )
-        unicode_form_submission.submit_time = '2014-01-02T12:00:00.000Z'
+        unicode_form_submission.created_at = '2014-01-02T12:00:00.000Z'
         unicode_form_submission.save()
 
         response = self.client.get(
@@ -389,7 +413,7 @@ class TestCustomFormsSubmissionsExport(TestCase, WagtailTestUtils):
                 'your-biography': 'こんにちは、世界',
             }),
         )
-        unicode_form_submission.submit_time = '2014-01-02T12:00:00.000Z'
+        unicode_form_submission.created_at = '2014-01-02T12:00:00.000Z'
         unicode_form_submission.save()
 
         response = self.client.get(
