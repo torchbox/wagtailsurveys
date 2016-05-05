@@ -247,7 +247,7 @@ class CustomFormSubmission(surveys_models.AbstractFormSubmission):
 Note that this code also changes submissions list view.
 
 
-#### How to check that submission already exists for a user
+#### Check that submission already exists for a user
 
 If you want to forbid users to take survey or poll twice,
 you need to override `serve` method in page model.
@@ -337,6 +337,145 @@ Now you need to create template like this:
     </body>
 </html>
 ```
+
+#### Multi-step form
+
+The following example shows how to create multi-step form.
+
+```python
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.shortcuts import render
+
+from modelcluster.fields import ParentalKey
+from wagtail.wagtailadmin.edit_handlers import FieldPanel, InlinePanel
+from wagtail.wagtailcore.fields import RichTextField
+
+from wagtailsurveys import models as surveys_models
+
+class SurveyWithPaginationPage(surveys_models.AbstractSurvey):
+    intro = RichTextField(blank=True)
+    thank_you_text = RichTextField(blank=True)
+
+    content_panels = surveys_models.AbstractSurvey.content_panels + [
+        FieldPanel('intro', classname="full"),
+        InlinePanel('survey_form_fields', label="Form fields"),
+        FieldPanel('thank_you_text', classname="full"),
+    ]
+
+    def get_form_class_for_step(self, step):
+        return self.form_builder(step.object_list).get_form_class()
+
+    def serve(self, request, *args, **kwargs):
+        """
+        Implements simple a multi-step form.
+
+        Stores each step into a session.
+        When the last step was submitted correctly, saves whole form into a DB.
+        """
+
+        session_key_data = 'survey_data-%s' % self.pk
+        is_last_step = False
+        step_number = request.GET.get('p', 1)
+
+        paginator = Paginator(self.get_form_fields(), per_page=1)
+        try:
+            step = paginator.page(step_number)
+        except PageNotAnInteger:
+            step = paginator.page(1)
+        except EmptyPage:
+            step = paginator.page(paginator.num_pages)
+            is_last_step = True
+
+        if request.method == 'POST':
+            # The first step will be submitted with step_number == 2,
+            # so we need to get a from from previous step
+            # Edge case - submission of the last step
+            prev_step = step if is_last_step else paginator.page(step.previous_page_number())
+
+            # Create a form only for submitted step
+            prev_form_class = self.get_form_class_for_step(prev_step)
+            prev_form = prev_form_class(request.POST, page=self, user=request.user)
+            if prev_form.is_valid():
+                # If data for step is valid, update the session
+                survey_data = request.session.get(session_key_data, {})
+                survey_data.update(prev_form.cleaned_data)
+                request.session[session_key_data] = survey_data
+
+                if prev_step.has_next():
+                    # Create a new form for a following step, if the following step is present
+                    form_class = self.get_form_class_for_step(step)
+                    form = form_class(page=self, user=request.user)
+                else:
+                    # If there is no more steps, create form for all fields
+                    form = self.get_form(
+                        request.session[session_key_data],
+                        page=self, user=request.user
+                    )
+
+                    if form.is_valid():
+                        # Perform validation again for whole form.
+                        # After successful validation, save data into DB,
+                        # and remove from the session.
+                        self.process_form_submission(form)
+                        del request.session[session_key_data]
+
+                        # Render the landing page
+                        return render(
+                            request,
+                            self.landing_page_template,
+                            self.get_context(request)
+                        )
+            else:
+                # If data for step is invalid
+                # we will need to display form again with errors,
+                # so restore previous state.
+                form = prev_form
+                step = prev_step
+        else:
+            # Create empty form for non-POST requests
+            form_class = self.get_form_class_for_step(step)
+            form = form_class(page=self, user=request.user)
+
+        context = self.get_context(request)
+        context['form'] = form
+        context['fields_step'] = step
+        return render(
+            request,
+            self.template,
+            context
+        )
+
+
+class SurveyWithPaginationFormField(surveys_models.AbstractFormField):
+    page = ParentalKey(SurveyWithPaginationPage, related_name='survey_form_fields')
+
+```
+
+Now you need to create template like this:
+
+```django
+{% load wagtailcore_tags %}
+<html>
+    <head>
+        <title>{{ page.title }}</title>
+    </head>
+    <body>
+        <h1>{{ page.title }}</h1>
+
+        <div>{{ self.intro|richtext }}</div>
+        <form action="{% pageurl self %}?p={{ fields_step.number|add:"1" }}" method="POST">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <input type="submit">
+        </form>
+    </body>
+</html>
+```
+
+Note that an example shown before allows user to return to a previous step,
+or open second step without submitting first step.
+Depending on your requirements, you may need add extra checks.
+
 
 ## How to run tests
 
