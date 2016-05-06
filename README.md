@@ -477,6 +477,105 @@ or open second step without submitting first step.
 Depending on your requirements, you may need add extra checks.
 
 
+#### Show results
+
+For some polls or surveys, you may need show results.
+The following example demonstrates how to do this.
+
+At first, you need to collect results as shown below:
+
+```python
+from modelcluster.fields import ParentalKey
+
+from wagtail.wagtailadmin.edit_handlers import FieldPanel, InlinePanel
+from wagtail.wagtailcore.fields import RichTextField
+
+from wagtailsurveys import models as surveys_models
+
+class SurveyWithResultsPage(surveys_models.AbstractSurvey):
+    intro = RichTextField(blank=True)
+    thank_you_text = RichTextField(blank=True)
+
+    content_panels = surveys_models.AbstractSurvey.content_panels + [
+        FieldPanel('intro', classname="full"),
+        InlinePanel('survey_form_fields', label="Form fields"),
+        FieldPanel('thank_you_text', classname="full"),
+    ]
+
+    def get_context(self, request, *args, **kwargs):
+        context = super(SurveyWithResultsPage, self).get_context(request, *args, **kwargs)
+
+        # If you need to show results only on landing page,
+        # you may need check request.method
+
+        results = dict()
+        # Get information about form fields
+        data_fields = [
+            (field.clean_name, field.label)
+            for field in self.get_form_fields()
+        ]
+
+        # Get all submissions for current page
+        submissions = self.get_submission_class().objects.filter(page=self)
+        for submission in submissions:
+            data = submission.get_data()
+
+            # Count results for each question
+            for name, label in data_fields:
+                answer = data.get(name)
+                if answer is None:
+                    # Something wrong with data.
+                    # Probably you have changed questions
+                    # and now we are receiving answers for old questions.
+                    # Just skip them.
+                    continue
+
+                question_stats = results.get(label, {})
+                question_stats[answer] = question_stats.get(answer, 0) + 1
+                results[label] = question_stats
+
+        context.update({
+            'results': results,
+        })
+        return context
+
+
+class SurveyWithResultsFormField(surveys_models.AbstractFormField):
+    page = ParentalKey(SurveyWithResultsPage, related_name='survey_form_fields')
+
+```
+
+Now you need create template like this:
+
+```django
+{% load wagtailcore_tags %}
+<html>
+    <head>
+        <title>{{ page.title }}</title>
+    </head>
+    <body>
+        <h1>{{ page.title }}</h1>
+
+        <h2>Results</h2>
+        {% for question, answers in results.items %}
+            <h3>{{ question }}</h3>
+            {% for answer, count in answers.items %}
+                <div>{{ answer }}: {{ count }}</div>
+            {% endfor %}
+        {% endfor %}
+
+        <div>{{ self.intro|richtext }}</div>
+        <form action="{% pageurl self %}" method="POST">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <input type="submit">
+        </form>
+    </body>
+</html>
+```
+
+You also can show results on landing page.
+
 ## How to run tests
 
 To run tests you need to clone this repository:
