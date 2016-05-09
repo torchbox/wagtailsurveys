@@ -7,9 +7,7 @@ from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils.encoding import smart_str
-from django.utils.six import text_type
 from django.utils.translation import ugettext as _
-from unidecode import unidecode
 
 from wagtail.utils.pagination import paginate
 from wagtail.wagtailcore.models import Page
@@ -83,7 +81,7 @@ def list_submissions(request, page_id):
         response['Content-Disposition'] = 'attachment;filename=export.csv'
 
         # Prevents UnicodeEncodeError for questions with non-ansi symbols
-        data_headings = [text_type(unidecode(text_type(label))) for label in data_headings]
+        data_headings = [smart_str(label) for label in data_headings]
 
         writer = csv.writer(response)
         writer.writerow(data_headings)

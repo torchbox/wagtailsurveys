@@ -11,7 +11,7 @@ from wagtail.tests.utils import WagtailTestUtils
 from wagtail.wagtailcore.models import Page
 
 from wagtailsurveys.models import FormSubmission
-from wagtailsurveys.tests.testapp.models import SurveyPage, CustomSubmission
+from wagtailsurveys.tests.testapp.models import SurveyPage, CustomSubmission, SurveyField
 from wagtailsurveys.tests import utils as tests_utils
 
 
@@ -447,12 +447,12 @@ class TestFormsSubmissionsExport(TestCase, WagtailTestUtils):
         self.assertEqual(data_lines[0], 'Submission Date,Your name,Your biography,Your choices\r')
         self.assertEqual(data_lines[1], '2014-01-01 12:00:00+00:00,John,Genius,None\r')
 
-    def test_list_submissions_csv_export_with_unicode(self):
+    def test_list_submissions_csv_export_with_unicode_in_submission(self):
         unicode_form_submission = FormSubmission.objects.create(
             page=self.survey_page,
             form_data=json.dumps({
                 'your-name': "Unicode boy",
-                'your-biography': 'こんにちは、世界',
+                'your-biography': "こんにちは、世界",
             }),
         )
         unicode_form_submission.created_at = '2014-01-02T12:00:00.000Z'
@@ -467,6 +467,39 @@ class TestFormsSubmissionsExport(TestCase, WagtailTestUtils):
         self.assertEqual(response.status_code, 200)
         data_line = response.content.decode('utf-8').split("\n")[3]
         self.assertIn('こんにちは、世界', data_line)
+
+    def test_list_submissions_csv_export_with_unicode_in_field(self):
+        SurveyField.objects.create(
+            page=self.survey_page.specific,
+            sort_order=2,
+            label="Выберите самую любимую IDE для разработке на Python",
+            help_text="Вы можете выбрать только один вариант",
+            field_type='radio',
+            required=True,
+            choices='PyCharm,vim,nano',
+        )
+        unicode_form_submission = FormSubmission.objects.create(
+            page=self.survey_page,
+            form_data=json.dumps({
+                'your-name': "Unicode boy",
+                'your-biography': "We don't need unicode here.",
+                'vyberite-samuiu-liubimuiu-ide-dlia-razrabotke-na-python': "vim",
+            }),
+        )
+        unicode_form_submission.submit_time = '2014-01-02T12:00:00.000Z'
+        unicode_form_submission.save()
+
+        response = self.client.get(
+            reverse('wagtailsurveys:list_submissions', args=(self.survey_page.id,)),
+            {'date_from': '01/02/2014', 'action': 'CSV'}
+        )
+
+        # Check response
+        self.assertEqual(response.status_code, 200)
+
+        data_lines = response.content.decode('utf-8').split("\n")
+        self.assertIn('Выберите самую любимую IDE для разработке на Python', data_lines[0])
+        self.assertIn('vim', data_lines[1])
 
 
 class TestCustomFormsSubmissionsExport(TestCase, WagtailTestUtils):
