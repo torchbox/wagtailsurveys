@@ -1,6 +1,6 @@
-# wagtailsurveys
+# Wagtailsurveys
 
-A module for Wagtail that provides ability to build polls and surveys.
+A module for Wagtail which provides the ability to build polls and surveys.
 
 ## How to install
 
@@ -27,8 +27,8 @@ INSTALLED_APPS = [
 ### The basics
 
 To build polls or surveys you need to define two models within the `models.py` of one of your apps:
-* Page model that extends `wagtailsurveys.models.AbstractSurvey`.
-* Inline model for form fields that extends `wagtailsurveys.models.AbstractFormField`.
+* A Page model that extends `wagtailsurveys.models.AbstractSurvey`.
+* An Inline model for form fields that extends `wagtailsurveys.models.AbstractFormField`.
 
 For example:
 ```python
@@ -89,8 +89,7 @@ A very basic template for the survey page would thus be:
 ```
 
 `survey_page_landing.html` is a regular Wagtail template, displayed after the user makes a successful form submission.
-You also can change landing template by specifying an `landing_page_template` attribute on your page model.
-
+You also can change the landing template by specifying a `landing_page_template` attribute on your page model.
 
 ### Customising
 
@@ -98,7 +97,7 @@ You also can change landing template by specifying an `landing_page_template` at
 
 If you want to change `related_name` for form fields
 (by default `AbstractSurvey` expects `survey_form_fields` to be defined),
-you will need to override `get_form_fields` method.
+you will need to override the `get_form_fields` method.
 You can do this as shown below.
 
 ```python
@@ -130,10 +129,10 @@ class SurveyFormField(surveys_models.AbstractFormField):
 
 #### Custom form submission model
 
-If you need to save additional data, you can use custom form submission model.
+If you need to save additional data, you can use a custom form submission model.
 To do this, you need to:
-* Define model that extends `wagtailsurveys.models.AbstractFormSubmission`.
-* Override `get_submission_class` and `process_form_submission` methods in page model.
+* Define a model that extends `wagtailsurveys.models.AbstractFormSubmission`.
+* Override the `get_submission_class` and `process_form_submission` methods in your page model.
 
 For example:
 ```python
@@ -180,11 +179,11 @@ class CustomFormSubmission(surveys_models.AbstractFormSubmission):
 
 #### Add custom data to CSV export
 
-If you want to add custom data to CSV export, you will need to:
-* Override `get_data_fields` method in page model.
-* Override `get_data` in submission model.
+If you want to add custom data to the CSV export, you will need to:
+* Override the `get_data_fields` method in page model.
+* Override `get_data` in the submission model.
 
-The following example shows how to add a username to CSV export:
+The following example shows how to add a username to the CSV export:
 
 ```python
 import json
@@ -244,13 +243,12 @@ class CustomFormSubmission(surveys_models.AbstractFormSubmission):
         return form_data
 ```
 
-Note that this code also changes submissions list view.
+Note that this code also changes the submissions list view.
 
+#### Check that a submission already exists for a user
 
-#### Check that submission already exists for a user
-
-If you want to forbid users to take survey or poll twice,
-you need to override `serve` method in page model.
+If you want to prevent users from taking a survey or poll more than once,
+you need to override the `serve` method in page model.
 
 For example:
 ```python
@@ -309,7 +307,7 @@ class CustomFormSubmission(surveys_models.AbstractFormSubmission):
         unique_together = ('page', 'user')
 ```
 
-Now you need to create template like this:
+Now you will need to create a template like this:
 
 ```django
 {% load wagtailcore_tags %}
@@ -340,7 +338,7 @@ Now you need to create template like this:
 
 #### Multi-step form
 
-The following example shows how to create multi-step form.
+The following example shows how to create a multi-step form.
 
 ```python
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -451,7 +449,7 @@ class SurveyWithPaginationFormField(surveys_models.AbstractFormField):
 
 ```
 
-Now you need to create template like this:
+Now you need to create a template like this:
 
 ```django
 {% load wagtailcore_tags %}
@@ -472,10 +470,9 @@ Now you need to create template like this:
 </html>
 ```
 
-Note that an example shown before allows user to return to a previous step,
-or open second step without submitting first step.
-Depending on your requirements, you may need add extra checks.
-
+Note that the example shown before allows the user to return to a previous step,
+or to open a second step without submitting the first step.
+Depending on your requirements, you may need to add extra checks.
 
 #### Show results
 
@@ -545,7 +542,7 @@ class SurveyWithResultsFormField(surveys_models.AbstractFormField):
 
 ```
 
-Now you need create template like this:
+Now you need create a template like this:
 
 ```django
 {% load wagtailcore_tags %}
@@ -574,7 +571,7 @@ Now you need create template like this:
 </html>
 ```
 
-You also can show results on landing page.
+You can also show the results on the landing page.
 
 ## How to run tests
 
@@ -583,7 +580,7 @@ To run tests you need to clone this repository:
     git clone https://github.com/torchbox/wagtailsurveys.git
     cd wagtailsurveys
 
-With your preferred virtualenv activated, install testing dependencies:
+With your preferred virtualenv activated, install the testing dependencies:
 
     pip install -e .[testing] -U
 
