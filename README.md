@@ -7,7 +7,7 @@ A module for Wagtail which provides the ability to build polls and surveys.
 Install using pip:
 
 ```
-pip install git+https://github.com/torchbox/wagtailsurveys.git
+pip install wagtailsurveys
 ```
 
 ### Settings
