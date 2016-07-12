@@ -527,6 +527,10 @@ class SurveyWithResultsPage(surveys_models.AbstractSurvey):
                     # Just skip them.
                     continue
 
+                if type(answer) is list:
+                    # Answer is a list if the field type is 'Checkboxes'
+                    answer = u', '.join(answer)
+
                 question_stats = results.get(label, {})
                 question_stats[answer] = question_stats.get(answer, 0) + 1
                 results[label] = question_stats
