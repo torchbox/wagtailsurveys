@@ -9,9 +9,14 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.utils.encoding import smart_str
 from django.utils.translation import ugettext as _
 
+try:
+    from wagtail.core.models import Page
+    from wagtail.admin import messages
+except ImportError:  # fallback for Wagtail <2.0
+    from wagtail.wagtailcore.models import Page
+    from wagtail.wagtailadmin import messages
+
 from wagtail.utils.pagination import paginate
-from wagtail.wagtailcore.models import Page
-from wagtail.wagtailadmin import messages
 from wagtailsurveys.forms import SelectDateForm
 
 from wagtailsurveys.models import get_surveys_for_user

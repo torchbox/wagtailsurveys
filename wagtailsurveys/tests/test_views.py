@@ -6,10 +6,12 @@ import json
 from django.contrib.auth import get_user_model
 from django.core.urlresolvers import reverse
 from django.test import TestCase
+try:
+    from wagtail.core.models import Page
+except ImportError:  # fallback for Wagtail <2.0
+    from wagtail.wagtailcore.models import Page
 
 from wagtail.tests.utils import WagtailTestUtils
-from wagtail.wagtailcore.models import Page
-
 from wagtailsurveys.models import FormSubmission
 from wagtailsurveys.tests.testapp.models import SurveyPage, CustomSubmission, SurveyField
 from wagtailsurveys.tests import utils as tests_utils

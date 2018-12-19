@@ -1,6 +1,9 @@
 from __future__ import unicode_literals
+try:
+    from wagtail.core.models import Page
+except ImportError:  # fallback for Wagtail <2.0
+    from wagtail.wagtailcore.models import Page
 
-from wagtail.wagtailcore.models import Page
 from wagtailsurveys.tests.testapp.models import (
     SurveyPage, SurveyField,
     SurveyWithCustomSubmissionPage, SurveyWithCustomSubmissionFormField

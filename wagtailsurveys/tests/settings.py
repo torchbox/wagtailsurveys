@@ -1,4 +1,5 @@
 import os
+from wagtail import VERSION as WAGTAIL_VERSION
 
 
 WAGTAILMEDIA_ROOT = os.path.dirname(__file__)
@@ -53,7 +54,7 @@ TEMPLATES = [
     }
 ]
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE_CLASSES = [
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -61,21 +62,23 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
 
-    'wagtail.wagtailcore.middleware.SiteMiddleware',
-    'wagtail.wagtailredirects.middleware.RedirectMiddleware',
-)
+if WAGTAIL_VERSION < (2, 0):
+    MIDDLEWARE_CLASSES = [
+        'wagtail.wagtailcore.middleware.SiteMiddleware',
+        'wagtail.wagtailredirects.middleware.RedirectMiddleware',
+    ] + MIDDLEWARE_CLASSES
+else:
+    MIDDLEWARE_CLASSES = [
+        'wagtail.core.middleware.SiteMiddleware',
+        'wagtail.contrib.redirects.middleware.RedirectMiddleware',
+    ] + MIDDLEWARE_CLASSES
 
-INSTALLED_APPS = (
+
+INSTALLED_APPS = [
     'wagtailsurveys.tests.testapp',
     'wagtailsurveys',
-
-    'wagtail.wagtailredirects',
-    'wagtail.wagtailimages',
-    'wagtail.wagtailusers',
-    'wagtail.wagtaildocs',
-    'wagtail.wagtailadmin',
-    'wagtail.wagtailcore',
 
     'taggit',
 
@@ -83,7 +86,27 @@ INSTALLED_APPS = (
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.staticfiles',
-)
+]
+
+
+if WAGTAIL_VERSION < (2, 0):
+    INSTALLED_APPS = [
+        'wagtail.wagtailredirects',
+        'wagtail.wagtailimages',
+        'wagtail.wagtailusers',
+        'wagtail.wagtaildocs',
+        'wagtail.wagtailadmin',
+        'wagtail.wagtailcore',
+    ] + INSTALLED_APPS
+else:
+    INSTALLED_APPS = [
+        'wagtail.contrib.redirects',
+        'wagtail.images',
+        'wagtail.users',
+        'wagtail.documents',
+        'wagtail.admin',
+        'wagtail.core',
+    ] + INSTALLED_APPS
 
 
 # Using DatabaseCache to make sure THAT the cache is cleared between tests.
@@ -101,11 +124,18 @@ PASSWORD_HASHERS = (
 )
 
 
-WAGTAILSEARCH_BACKENDS = {
-    'default': {
-        'BACKEND': 'wagtail.wagtailsearch.backends.db',
+if WAGTAIL_VERSION < (2, 0):
+    WAGTAILSEARCH_BACKENDS = {
+        'default': {
+            'BACKEND': 'wagtail.wagtailsearch.backends.db',
+        }
     }
-}
+else:
+    WAGTAILSEARCH_BACKENDS = {
+        'default': {
+            'BACKEND': 'wagtail.search.backends.db',
+        }
+    }
 
 
 WAGTAIL_SITE_NAME = "Test Site"

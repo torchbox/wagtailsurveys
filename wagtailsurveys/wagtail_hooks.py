@@ -2,8 +2,12 @@ from django.conf.urls import include, url
 from django.core import urlresolvers
 from django.utils.translation import ugettext_lazy as _
 
-from wagtail.wagtailcore import hooks
-from wagtail.wagtailadmin.menu import MenuItem
+try:
+    from wagtail.core import hooks
+    from wagtail.admin.menu import MenuItem
+except ImportError:  # fallback for Wagtail <2.0
+    from wagtail.wagtailcore import hooks
+    from wagtail.wagtailadmin.menu import MenuItem
 
 from wagtailsurveys import admin_urls
 from wagtailsurveys.models import get_surveys_for_user

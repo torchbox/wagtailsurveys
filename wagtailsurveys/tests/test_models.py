@@ -4,9 +4,12 @@ from __future__ import unicode_literals
 import json
 
 from django.test import TestCase
+try:
+    from wagtail.core.models import Page
+except ImportError:  # fallback for Wagtail <2.0
+    from wagtail.wagtailcore.models import Page
 
 from wagtail.tests.utils import WagtailTestUtils
-from wagtail.wagtailcore.models import Page
 from wagtailsurveys.models import FormSubmission
 from wagtailsurveys.tests.testapp.models import SurveyField, CustomSubmission
 from wagtailsurveys.tests import utils as tests_utils
