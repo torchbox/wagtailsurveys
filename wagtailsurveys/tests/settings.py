@@ -65,15 +65,15 @@ MIDDLEWARE_CLASSES = [
 ]
 
 if WAGTAIL_VERSION < (2, 0):
-    MIDDLEWARE_CLASSES = [
+    MIDDLEWARE_CLASSES = MIDDLEWARE_CLASSES + [
         'wagtail.wagtailcore.middleware.SiteMiddleware',
         'wagtail.wagtailredirects.middleware.RedirectMiddleware',
-    ] + MIDDLEWARE_CLASSES
+    ]
 else:
-    MIDDLEWARE_CLASSES = [
+    MIDDLEWARE_CLASSES = MIDDLEWARE_CLASSES + [
         'wagtail.core.middleware.SiteMiddleware',
         'wagtail.contrib.redirects.middleware.RedirectMiddleware',
-    ] + MIDDLEWARE_CLASSES
+    ]
 
 
 INSTALLED_APPS = [
