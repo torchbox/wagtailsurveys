@@ -1,3 +1,7 @@
+# Deprecated warning
+
+Wagtailsurveys is now deprecated. It was ported into the primary Wagtail repository. Please use Wagtail's [Form builder](http://docs.wagtail.io/en/v2.4/reference/contrib/forms/index.html) instead - it [supports customisations](http://docs.wagtail.io/en/v2.4/reference/contrib/forms/customisation.html) described below.
+
 # Wagtailsurveys
 
 A module for Wagtail which provides the ability to build polls and surveys.
